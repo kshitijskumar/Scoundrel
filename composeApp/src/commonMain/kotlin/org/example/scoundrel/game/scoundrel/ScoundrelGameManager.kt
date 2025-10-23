@@ -11,6 +11,7 @@ import org.example.scoundrel.cards.CardSuit
 import org.example.scoundrel.cards.CardsAppModel
 import org.example.scoundrel.deck.scoundrel.ScoundrelDeckCreator
 import org.example.scoundrel.game.scoundrel.ScoundrelGameManagerImpl.Companion.MAX_HP
+import org.example.scoundrel.utils.addAllAndGet
 
 interface ScoundrelGameManager {
 
@@ -21,6 +22,10 @@ interface ScoundrelGameManager {
     fun isValidMove(move: ScoundrelGameMoves): Boolean
 
     suspend fun makeMove(move: ScoundrelGameMoves): Boolean
+
+    suspend fun createNextRoom()
+
+    suspend fun skipCurrentRoom()
 
     fun clear()
 
@@ -39,7 +44,7 @@ class ScoundrelGameManagerImpl(
         val deck = deckCreator.createDeck()
         val shuffleDeck = deckCreator.shuffleDeck(deck)
 
-        val roomAndRemainingDeck = getRoomAndRemainingDungeon(shuffleDeck)
+        val roomAndRemainingDeck = getRoomAndRemainingDungeon(shuffleDeck, ROOM_SIZE)
         if (roomAndRemainingDeck == null) {
             // shouldn't happen
             return
@@ -61,13 +66,16 @@ class ScoundrelGameManagerImpl(
     /**
      * @return first contains room cards and second contains updated deck
      */
-    private fun getRoomAndRemainingDungeon(currentDeck: List<CardsAppModel>): Pair<List<CardsAppModel>, List<CardsAppModel>>? {
-        val isRequiredCardPresent = currentDeck.size >= ROOM_SIZE
+    private fun getRoomAndRemainingDungeon(
+        currentDeck: List<CardsAppModel>,
+        cardsNeededForRoom: Int
+    ): Pair<List<CardsAppModel>, List<CardsAppModel>>? {
+        val isRequiredCardPresent = currentDeck.size >= cardsNeededForRoom
         if (!isRequiredCardPresent) {
             return null
         }
 
-        val updatedDeck = currentDeck.dropLast(ROOM_SIZE)
+        val updatedDeck = currentDeck.dropLast(cardsNeededForRoom)
         val roomCards = currentDeck.subtract(updatedDeck).toList()
 
         return (roomCards to updatedDeck)
@@ -84,16 +92,64 @@ class ScoundrelGameManagerImpl(
                 return false
             }
 
-            val currentRoomState = gameState.value ?: return false
+            val currentState = gameState.value ?: return false
+            val updatedState = scoundrelMoveManager.makeMove(
+                currentGameState = currentState,
+                move = move
+            )
 
-            _gameState.update {
-                scoundrelMoveManager.makeMove(
-                    currentGameState = currentRoomState,
-                    move = move
-                )
-            }
+            _gameState.update { updatedState }
             true
         }
+    }
+
+    override suspend fun createNextRoom() {
+        // even though creating next room is not a move, still wrapping it in this mutex
+        // since moves are dependant on rooms created
+        moveMutex.withLock {
+            val currentState = gameState.value ?: return
+            if (!currentState.currentRoomState.isRoomFinished()) {
+                return
+            }
+
+            val cardsRequired = ROOM_SIZE - currentState.currentRoomState.roomDeck.size // ideally will be 3
+            if (cardsRequired <= 0) {
+                // shouldn't happen
+                return
+            }
+
+            _gameState.update { createNextRoom(currentState, cardsRequired) }
+        }
+    }
+
+    override suspend fun skipCurrentRoom() {
+        moveMutex.withLock {
+
+        }
+    }
+
+    private fun createNextRoom(
+        currentState: ScoundrelGameState,
+        cardsRequired: Int
+    ): ScoundrelGameState {
+        val updatedRoomAndDungeon = getRoomAndRemainingDungeon(
+            currentDeck = currentState.dungeonDeck,
+            cardsNeededForRoom = cardsRequired
+        )
+
+        if (updatedRoomAndDungeon == null) {
+            // this means game finished, should not happen
+            return currentState
+        }
+
+        return currentState.copy(
+            dungeonDeck = updatedRoomAndDungeon.second,
+            currentRoomState = ScoundrelRoomState(
+                roomDeck = updatedRoomAndDungeon.first,
+                cardPlayedInRoom = listOf()
+            ),
+            discardedDeck = currentState.discardedDeck.addAllAndGet(currentState.currentRoomState.cardPlayedInRoom)
+        )
     }
 
     override fun clear() {
@@ -120,13 +176,18 @@ data class ScoundrelRoomState(
     val cardPlayedInRoom: List<CardsAppModel>
 )
 
+fun ScoundrelRoomState.isRoomFinished(): Boolean {
+    // not checking for <= 1 coz ideally this number should not go down below 1
+    return this.roomDeck.size == 1
+}
+
 sealed class ScoundrelGameMoves {
 
     data class Weapon(val card: CardsAppModel) : ScoundrelGameMoves()
     data class Monster(val card: CardsAppModel, val fightBareHanded: Boolean) : ScoundrelGameMoves()
     data class HealthPotion(val card: CardsAppModel) : ScoundrelGameMoves()
-
     data class DiscardHealthPotion(val card: CardsAppModel) : ScoundrelGameMoves()
+
 
 }
 
