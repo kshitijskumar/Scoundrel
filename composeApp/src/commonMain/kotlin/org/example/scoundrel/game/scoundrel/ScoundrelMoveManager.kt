@@ -183,10 +183,6 @@ class ScoundrelMoveManagerImpl : ScoundrelMoveManager {
         }
     }
 
-    private fun makeSkipRoomMove(currentGameState: ScoundrelGameState): ScoundrelGameState {
-        val cardsInRoom =
-    }
-
     private fun fightMonsterBareHanded(
         currentState: ScoundrelGameState,
         currentRoom: ScoundrelRoomState,

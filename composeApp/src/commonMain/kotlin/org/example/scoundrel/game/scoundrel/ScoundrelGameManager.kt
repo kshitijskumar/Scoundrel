@@ -58,7 +58,9 @@ class ScoundrelGameManagerImpl(
                     cardPlayedInRoom = listOf()
                 ),
                 discardedDeck = listOf(),
-                weaponDeck = listOf()
+                weaponDeck = listOf(),
+                wasLastRoomSkipped = false,
+                canSkipCurrentRoom = true
             )
         }
     }
@@ -98,7 +100,7 @@ class ScoundrelGameManagerImpl(
                 move = move
             )
 
-            _gameState.update { updatedState }
+            updateGameState { updatedState }
             true
         }
     }
@@ -118,14 +120,77 @@ class ScoundrelGameManagerImpl(
                 return
             }
 
-            _gameState.update { createNextRoom(currentState, cardsRequired) }
+            var updatedState = createNextRoom(
+                currentState = currentState,
+                cardsRequired = cardsRequired
+            )
+
+            updatedState = updatedState.copy(
+                wasLastRoomSkipped = false, // since this is user triggered, we can be sure last room was played
+            )
+
+            updateGameState { updatedState }
         }
     }
 
     override suspend fun skipCurrentRoom() {
         moveMutex.withLock {
+            val currentState = gameState.value ?: return
+            if (!canSkipCurrentRoom(currentState)) {
+                return
+            }
 
+            val currentRoomCards = currentState.currentRoomState.roomDeck.shuffled()
+
+            val updatedDungeon = currentRoomCards.addAllAndGet(currentState.dungeonDeck)
+
+            val updatedRoomAndDungeon = getRoomAndRemainingDungeon(updatedDungeon, ROOM_SIZE)
+
+            if (updatedRoomAndDungeon == null) {
+                // shouldn't happen skip only allowed if there was sufficient cards
+                return
+            }
+
+            // reset dungeon again after putting current room cards back in deck
+            var updatedState = currentState.copy(
+                dungeonDeck = updatedRoomAndDungeon.second
+            )
+
+            // create new room again
+            updatedState = createNextRoom(
+                currentState = updatedState,
+                cardsRequired = ROOM_SIZE
+            )
+
+            updatedState = updatedState.copy(
+                wasLastRoomSkipped = true
+            )
+
+            updateGameState { updatedState }
         }
+    }
+
+    private fun canSkipCurrentRoom(
+        currentState: ScoundrelGameState
+    ): Boolean {
+        return canSkipCurrentRoom(
+            wasLastRoomSkipped = currentState.wasLastRoomSkipped,
+            currentRoomDeck = currentState.currentRoomState.roomDeck,
+            currentDungeonDeck = currentState.dungeonDeck
+        )
+    }
+
+    private fun canSkipCurrentRoom(
+        wasLastRoomSkipped: Boolean,
+        currentRoomDeck: List<CardsAppModel>,
+        currentDungeonDeck: List<CardsAppModel>
+    ): Boolean {
+        val anyCardPlayedInCurrentRoom = currentRoomDeck.size != ROOM_SIZE
+        val currentDungeonHasCards = currentDungeonDeck.isNotEmpty()
+
+        return wasLastRoomSkipped.not() // cannot skip 2 rooms in a row
+                && anyCardPlayedInCurrentRoom.not() // once played, room cannot be skipped
+                && currentDungeonHasCards // dungeon should have atleast 1 card to change something
     }
 
     private fun createNextRoom(
@@ -153,7 +218,16 @@ class ScoundrelGameManagerImpl(
     }
 
     override fun clear() {
-        _gameState.update { null }
+        updateGameState { null }
+    }
+
+    private fun updateGameState(block: (ScoundrelGameState?) -> ScoundrelGameState?) {
+        _gameState.update {
+            val stateToUpdate = block.invoke(it)
+            stateToUpdate?.copy(
+                canSkipCurrentRoom = canSkipCurrentRoom(stateToUpdate)
+            )
+        }
     }
 
     companion object {
@@ -169,6 +243,8 @@ data class ScoundrelGameState(
     val currentRoomState: ScoundrelRoomState,
     val discardedDeck: List<CardsAppModel>,
     val weaponDeck: List<CardsAppModel>,
+    val wasLastRoomSkipped: Boolean,
+    val canSkipCurrentRoom: Boolean
 )
 
 data class ScoundrelRoomState(
