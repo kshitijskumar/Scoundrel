@@ -126,6 +126,8 @@ sealed class ScoundrelGameMoves {
     data class Monster(val card: CardsAppModel, val fightBareHanded: Boolean) : ScoundrelGameMoves()
     data class HealthPotion(val card: CardsAppModel) : ScoundrelGameMoves()
 
+    data class DiscardHealthPotion(val card: CardsAppModel) : ScoundrelGameMoves()
+
 }
 
 fun CardsAppModel.isWeaponCard(): Boolean {

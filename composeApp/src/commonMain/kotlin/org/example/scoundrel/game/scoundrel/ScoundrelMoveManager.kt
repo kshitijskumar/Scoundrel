@@ -42,6 +42,7 @@ class ScoundrelMoveManagerImpl : ScoundrelMoveManager {
                 )
             }
             is ScoundrelGameMoves.Weapon -> isWeaponUsable(move.card)
+            is ScoundrelGameMoves.DiscardHealthPotion -> move.card.isPotionCard()
         }
     }
 
@@ -53,6 +54,7 @@ class ScoundrelMoveManagerImpl : ScoundrelMoveManager {
             is ScoundrelGameMoves.HealthPotion -> makeHealthPotionMove(currentGameState, move)
             is ScoundrelGameMoves.Monster -> makeMonsterMove(currentGameState, move)
             is ScoundrelGameMoves.Weapon -> makeWeaponMove(currentGameState, move)
+            is ScoundrelGameMoves.DiscardHealthPotion -> makeDiscardHealthPotionMove(currentGameState, move)
         }
     }
 
@@ -147,6 +149,16 @@ class ScoundrelMoveManagerImpl : ScoundrelMoveManager {
             healthPoints = updatedHealth,
             discardedDeck = currentState.discardedDeck.addAndGet(move.card),
             currentRoomState = updatedRoom
+        )
+    }
+
+    private fun makeDiscardHealthPotionMove(
+        currentGameState: ScoundrelGameState,
+        move: ScoundrelGameMoves.DiscardHealthPotion
+    ): ScoundrelGameState {
+        // not updating this card in cardsPlayed in room, coz technically this was not played, but rather discarded
+        return currentGameState.copy(
+            discardedDeck = currentGameState.discardedDeck.addAndGet(move.card)
         )
     }
 
