@@ -20,7 +20,14 @@ enum class CardFace {
     JACK,
     QUEEN,
     KING,
-    ACE
+    ACE;
+
+    companion object {
+        const val JACK_SCOUNDREL_MONSTER_VALUE = 11
+        const val QUEEN_SCOUNDREL_MONSTER_VALUE = 12
+        const val KING_SCOUNDREL_MONSTER_VALUE = 13
+        const val ACE_SCOUNDREL_MONSTER_VALUE = 14
+    }
 }
 
 enum class CardColor {
