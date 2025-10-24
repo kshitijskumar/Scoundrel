@@ -225,9 +225,40 @@ class ScoundrelGameManagerImpl(
         _gameState.update {
             val stateToUpdate = block.invoke(it)
             stateToUpdate?.copy(
-                canSkipCurrentRoom = canSkipCurrentRoom(stateToUpdate)
+                canSkipCurrentRoom = canSkipCurrentRoom(stateToUpdate),
+                finishState = createFinishStateIfFinished(stateToUpdate)
             )
         }
+    }
+
+    private fun createFinishStateIfFinished(state: ScoundrelGameState): ScoundrelFinishState? {
+        val hp = state.healthPoints
+        val dungeonDeck = state.dungeonDeck
+        val currentRoomDeck = state.currentRoomState.roomDeck
+
+        return when {
+            hp <= 0 -> {
+                // game lost
+                val finalMonstersSum = dungeonDeck.sumOf { it.monsterValue() ?: 0 }
+                ScoundrelFinishState(hp - finalMonstersSum)
+            }
+            areAllCardsPlayed(dungeonDeck, currentRoomDeck) -> {
+                // cards finished, game won
+                ScoundrelFinishState(hp)
+            }
+            else -> {
+                null
+            }
+        }
+    }
+
+    private fun areAllCardsPlayed(
+        dungeonDeck: List<CardsAppModel>,
+        currentRoomDeck: List<CardsAppModel>
+    ): Boolean {
+        val totalCardsPlayableLeft = currentRoomDeck.size + dungeonDeck.size
+        // not enough playable cards left
+        return totalCardsPlayableLeft < ROOM_SIZE
     }
 
     companion object {
@@ -244,8 +275,15 @@ data class ScoundrelGameState(
     val discardedDeck: List<CardsAppModel>,
     val weaponDeck: List<CardsAppModel>,
     val wasLastRoomSkipped: Boolean,
-    val canSkipCurrentRoom: Boolean
+    val canSkipCurrentRoom: Boolean,
+    val finishState: ScoundrelFinishState? = null
 )
+
+data class ScoundrelFinishState(
+    val finalScore: Int
+)
+
+fun ScoundrelFinishState.gameWon(): Boolean = finalScore > 0
 
 data class ScoundrelRoomState(
     val roomDeck: List<CardsAppModel>,
