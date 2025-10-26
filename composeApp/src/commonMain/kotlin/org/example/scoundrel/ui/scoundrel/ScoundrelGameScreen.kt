@@ -26,13 +26,9 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.LinearProgressIndicator
-import androidx.compose.material3.ProgressIndicatorDefaults
-import androidx.compose.material3.ProgressIndicatorDefaults.drawStopIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -45,9 +41,6 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.ColorFilter
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.TileMode
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalWindowInfo
@@ -55,7 +48,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.max
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import org.example.scoundrel.cards.CardColor
@@ -65,8 +57,6 @@ import org.example.scoundrel.cards.CardsAppModel
 import org.example.scoundrel.cards.color
 import org.example.scoundrel.game.scoundrel.ScoundrelFinishState
 import org.example.scoundrel.game.scoundrel.ScoundrelGameManagerImpl
-import org.example.scoundrel.game.scoundrel.healthValue
-import org.example.scoundrel.game.scoundrel.monsterValue
 import org.example.scoundrel.theme.ColorUtils
 import org.example.scoundrel.theme.ShapeUtils.cardShape
 import org.jetbrains.compose.resources.DrawableResource
@@ -77,32 +67,37 @@ import scoundrel.composeapp.generated.resources.ic_suit_clubs
 import scoundrel.composeapp.generated.resources.ic_suit_diamond
 import scoundrel.composeapp.generated.resources.ic_suit_hearts
 import scoundrel.composeapp.generated.resources.ic_suit_spades
-import kotlin.collections.indexOf
-import kotlin.math.max
 
 @Composable
 fun ScoundrelGameScreen(vm: ScoundrelViewModel) {
     val state by vm.state.collectAsState()
 
-    when {
-        !state.gameStarted -> {
-            ScoundrelStartScreen(
-                onStartClick = { vm.processIntent(ScoundrelIntent.StartGameIntent) }
-            )
-        }
-        state.finishState != null -> {
-            state.finishState?.let { finishState ->
-                ScoundrelGameFinish(
-                    finishState = finishState,
-                    replayClick = {  }
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .gameBackground(),
+        contentAlignment = Alignment.Center
+    ) {
+        when {
+            !state.gameStarted -> {
+                ScoundrelStartScreen(
+                    onStartClick = { vm.processIntent(ScoundrelIntent.StartGameIntent) }
                 )
             }
-        }
-        else -> {
-            ScoundrelGameScreen(
-                state = state,
-                sendIntent = vm::processIntent
-            )
+            state.finishState != null -> {
+                state.finishState?.let { finishState ->
+                    ScoundrelGameFinish(
+                        finishState = finishState,
+                        replayClick = {  }
+                    )
+                }
+            }
+            else -> {
+                ScoundrelGameScreen(
+                    state = state,
+                    sendIntent = vm::processIntent
+                )
+            }
         }
     }
 }
@@ -149,7 +144,6 @@ private fun ScoundrelGameScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .gameBackground()
             .padding(16.dp),
     ) {
         ScoundrelHealthBar(
@@ -574,13 +568,13 @@ private fun createCurrentDeckWithSlots(
 private fun Modifier.gameBackground(): Modifier {
     val gradient = Brush.radialGradient(
         listOf(
-            ColorUtils.MediumBlue.copy(alpha = 0.5f),
+            ColorUtils.MediumMagenta.copy(alpha = 0.5f),
             Color.Transparent
         ),
     )
 
     return this
-        .background(ColorUtils.DarkBlue)
+        .background(ColorUtils.DarkMagenta)
         .background(gradient)
 }
 
