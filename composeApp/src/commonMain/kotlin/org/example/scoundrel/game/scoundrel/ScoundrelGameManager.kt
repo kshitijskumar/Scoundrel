@@ -153,7 +153,11 @@ class ScoundrelGameManagerImpl(
 
             // reset dungeon again after putting current room cards back in deck
             var updatedState = currentState.copy(
-                dungeonDeck = updatedRoomAndDungeon.second
+                dungeonDeck = updatedRoomAndDungeon.second,
+                currentRoomState = currentState.currentRoomState.copy(
+                    roomDeck = listOf(),
+                    cardPlayedInRoom = listOf()
+                )
             )
 
             // create new room again
@@ -207,10 +211,11 @@ class ScoundrelGameManagerImpl(
             return currentState
         }
 
+        val updatedRoomDeck = currentState.currentRoomState.roomDeck.addAllAndGet(updatedRoomAndDungeon.first)
         return currentState.copy(
             dungeonDeck = updatedRoomAndDungeon.second,
             currentRoomState = ScoundrelRoomState(
-                roomDeck = updatedRoomAndDungeon.first,
+                roomDeck = updatedRoomDeck,
                 cardPlayedInRoom = listOf()
             ),
             discardedDeck = currentState.discardedDeck.addAllAndGet(currentState.currentRoomState.cardPlayedInRoom)

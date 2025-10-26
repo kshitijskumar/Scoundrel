@@ -158,6 +158,10 @@ class ScoundrelMoveManagerImpl : ScoundrelMoveManager {
     ): ScoundrelGameState {
         // not updating this card in cardsPlayed in room, coz technically this was not played, but rather discarded
         return currentGameState.copy(
+            currentRoomState = currentGameState.currentRoomState.copy(
+                roomDeck = currentGameState.currentRoomState.roomDeck.removeAndGet(move.card),
+                cardPlayedInRoom = currentGameState.currentRoomState.cardPlayedInRoom.addAndGet(move.card)
+            ),
             discardedDeck = currentGameState.discardedDeck.addAndGet(move.card)
         )
     }
