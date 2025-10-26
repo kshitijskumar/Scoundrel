@@ -63,6 +63,7 @@ import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
 import scoundrel.composeapp.generated.resources.Res
 import scoundrel.composeapp.generated.resources.ic_health_heart
+import scoundrel.composeapp.generated.resources.ic_scoundrel_title
 import scoundrel.composeapp.generated.resources.ic_suit_clubs
 import scoundrel.composeapp.generated.resources.ic_suit_diamond
 import scoundrel.composeapp.generated.resources.ic_suit_hearts
@@ -106,13 +107,22 @@ fun ScoundrelGameScreen(vm: ScoundrelViewModel) {
 private fun ScoundrelStartScreen(
     onStartClick: () -> Unit
 ) {
-    Box(
+    Column(
         modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.SpaceEvenly
     ) {
-        Button(onClick = onStartClick) {
-            Text("Start game")
-        }
+        Image(
+            painter = painterResource(Res.drawable.ic_scoundrel_title),
+            contentDescription = null,
+            modifier = Modifier.fillMaxWidth(0.75f)
+        )
+
+        GameOptionButton(
+            text = "Start Game",
+            onClick = onStartClick,
+            modifier = Modifier.fillMaxWidth(0.5f)
+        )
     }
 }
 
@@ -146,7 +156,8 @@ private fun ScoundrelGameFinish(
 
         GameOptionButton(
             text = "Retry",
-            onClick = replayClick
+            onClick = replayClick,
+            modifier = Modifier.fillMaxWidth(0.5f)
         )
     }
 }
