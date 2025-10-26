@@ -88,7 +88,7 @@ fun ScoundrelGameScreen(vm: ScoundrelViewModel) {
                 state.finishState?.let { finishState ->
                     ScoundrelGameFinish(
                         finishState = finishState,
-                        replayClick = {  }
+                        replayClick = { vm.processIntent(ScoundrelIntent.RetryIntent) }
                     )
                 }
             }
@@ -127,12 +127,27 @@ private fun ScoundrelGameFinish(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
-            text = if (finishState.finalScore > 0) "You Won!" else "You Lost!"
+            text = if (finishState.finalScore > 0) "You Won!" else "You Lost!",
+            color = ColorUtils.MediumRed,
+            fontWeight = FontWeight.ExtraBold,
+            fontSize = 48.sp
         )
 
-        Button(onClick = replayClick) {
-            Text("Replay")
-        }
+        Spacer(Modifier.height(24.dp))
+
+        Text(
+            text = "Final score ${finishState.finalScore}",
+            color = ColorUtils.TanBrown,
+            fontWeight = FontWeight.ExtraBold,
+            fontSize = 32.sp
+        )
+
+        Spacer(Modifier.height(24.dp))
+
+        GameOptionButton(
+            text = "Retry",
+            onClick = replayClick
+        )
     }
 }
 

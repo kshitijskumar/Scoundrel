@@ -32,6 +32,8 @@ sealed class ScoundrelIntent {
 
     data object SkipCurrentRoomIntent : ScoundrelIntent()
 
+    data object RetryIntent : ScoundrelIntent()
+
 }
 
 data class CardAndPossibleMoveSet(

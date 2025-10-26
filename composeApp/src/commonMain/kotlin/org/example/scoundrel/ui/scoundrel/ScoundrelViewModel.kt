@@ -26,6 +26,7 @@ class ScoundrelViewModel(
             is ScoundrelIntent.MakeMoveIntent -> handleMakeMoveIntent(intent)
             ScoundrelIntent.CreateNextRoomIntent -> handleCreateNextRoom()
             ScoundrelIntent.SkipCurrentRoomIntent -> handleSkipCurrentRoomIntent()
+            ScoundrelIntent.RetryIntent -> handleRetryIntent()
         }
     }
 
@@ -127,6 +128,23 @@ class ScoundrelViewModel(
         viewModelScope.launch {
             gameManager.skipCurrentRoom()
         }
+    }
+
+    private fun handleRetryIntent() {
+        gameStateJob?.cancel()
+        updateState {
+            it.copy(
+                healthPoints = 0,
+                dungeonDeck = listOf(),
+                currentRoomDeck = listOf(),
+                weaponDeck = listOf(),
+                selectedCard = null,
+                canSkipCurrentRoom = false,
+                finishState = null
+            )
+        }
+        gameManager.initialise()
+        startCollectingGameState()
     }
 
     private fun getPossibleMoveSetsForCard(card: CardsAppModel): List<ScoundrelMoveSet> {
