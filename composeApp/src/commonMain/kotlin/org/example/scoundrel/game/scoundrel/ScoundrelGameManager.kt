@@ -242,7 +242,8 @@ class ScoundrelGameManagerImpl(
             }
             areAllCardsPlayed(dungeonDeck, currentRoomDeck) -> {
                 // cards finished, game won
-                ScoundrelFinishState(hp)
+                val healthCardsInRoom = currentRoomDeck.sumOf { it.healthValue() ?: 0 }
+                ScoundrelFinishState(hp + healthCardsInRoom)
             }
             else -> {
                 null
@@ -254,9 +255,16 @@ class ScoundrelGameManagerImpl(
         dungeonDeck: List<CardsAppModel>,
         currentRoomDeck: List<CardsAppModel>
     ): Boolean {
-        val totalCardsPlayableLeft = currentRoomDeck.size + dungeonDeck.size
-        // not enough playable cards left
-        return totalCardsPlayableLeft < ROOM_SIZE
+        return if (dungeonDeck.isEmpty()) {
+            // only one card remaining and dungeon is finished
+            currentRoomDeck.size == 1
+        } else {
+            val isCurrentRoomFinished = currentRoomDeck.size == 1
+            val areSufficientCardsPresentInDungeon = dungeonDeck.size == (ROOM_SIZE - 1)
+
+            // current room finished but sufficient cards not present in dungeon to continue
+            isCurrentRoomFinished && !areSufficientCardsPresentInDungeon
+        }
     }
 
     companion object {
