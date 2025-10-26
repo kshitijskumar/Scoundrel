@@ -45,6 +45,7 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.TileMode
 import androidx.compose.ui.layout.onGloballyPositioned
@@ -71,7 +72,6 @@ import org.example.scoundrel.theme.ShapeUtils.cardShape
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
 import scoundrel.composeapp.generated.resources.Res
-import scoundrel.composeapp.generated.resources.ic_card_border
 import scoundrel.composeapp.generated.resources.ic_health_heart
 import scoundrel.composeapp.generated.resources.ic_suit_clubs
 import scoundrel.composeapp.generated.resources.ic_suit_diamond
@@ -225,6 +225,21 @@ private fun ScoundrelGameScreen(
 }
 
 @Composable
+private fun CardBackComponent(
+    modifier: Modifier = Modifier
+) {
+    EmptyCardSlot(modifier) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(ColorUtils.LightBrown)
+                .padding(4.dp)
+                .background(ColorUtils.MediumRed, cardShape)
+        )
+    }
+}
+
+@Composable
 private fun WeaponsDeckOption(
     weaponsDeck: List<CardsAppModel>,
     modifier: Modifier = Modifier
@@ -296,9 +311,7 @@ private fun DungeonDeckOption(
             modifier = modifier,
             contentAlignment = Alignment.BottomEnd
         ) {
-            NoCardPlaceholder(
-                modifier = Modifier.fillMaxWidth()
-            )
+            CardBackComponent(modifier = Modifier.fillMaxWidth())
 
             Box(
                 modifier = Modifier
