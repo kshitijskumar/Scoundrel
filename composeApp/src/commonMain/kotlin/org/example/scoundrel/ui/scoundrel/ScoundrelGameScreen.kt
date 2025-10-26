@@ -1,5 +1,6 @@
 package org.example.scoundrel.ui.scoundrel
 
+import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.animateIntAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
@@ -13,6 +14,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -20,6 +22,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.LinearProgressIndicator
@@ -48,6 +51,7 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.max
@@ -60,6 +64,8 @@ import org.example.scoundrel.cards.CardsAppModel
 import org.example.scoundrel.cards.color
 import org.example.scoundrel.game.scoundrel.ScoundrelFinishState
 import org.example.scoundrel.game.scoundrel.ScoundrelGameManagerImpl
+import org.example.scoundrel.game.scoundrel.healthValue
+import org.example.scoundrel.game.scoundrel.monsterValue
 import org.example.scoundrel.theme.ColorUtils
 import org.example.scoundrel.theme.ShapeUtils.cardShape
 import org.jetbrains.compose.resources.DrawableResource
@@ -154,69 +160,189 @@ private fun ScoundrelGameScreen(
                 .align(Alignment.End)
         )
 
-        Spacer(Modifier.height(24.dp))
+        Spacer(Modifier.height(36.dp))
 
-        state.selectedCard?.let { selectedCard ->
-            Row(
-                Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly
-            ) {
-                selectedCard.moveSets.forEach { move ->
-                    Button(
-                        onClick = {
-                            sendIntent(
-                                ScoundrelIntent.MakeMoveIntent(selectedCard, move)
-                            )
-                        },
-                        enabled = move.canChoose
-                    ) {
-                        Text(move.moveName())
-                    }
-                }
-            }
-        }
+        WeaponsDeckOption(
+            weaponsDeck = state.weaponDeck,
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        Spacer(Modifier.height(36.dp))
 
         Row(
-            Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.Bottom
         ) {
-            state.currentRoomDeck.forEach { card ->
-                Button(
-                    onClick = {
-                        sendIntent(ScoundrelIntent.SelectCardIntent(card))
-                    },
-                    Modifier.weight(1f)
-                ) {
-                    Text(card.toString())
-                }
-            }
-        }
+            DungeonDeckOption(
+                dungeonDeck = state.dungeonDeck,
+                modifier = Modifier
+            )
 
-        Button(
-            onClick = { sendIntent(ScoundrelIntent.CreateNextRoomIntent) },
-            enabled = state.canCreateNextRoom()
-        ) {
-            Text("Next Room")
-        }
-
-        Button(
-            onClick = { sendIntent(ScoundrelIntent.SkipCurrentRoomIntent) },
-            enabled = state.canSkipCurrentRoom
-        ) {
-            Text("Skip Room")
+            RoomMoveOption(
+                canCreateRoom = state.canCreateNextRoom(),
+                canSkipRoom = state.canSkipCurrentRoom,
+                createRoomClick = { sendIntent.invoke(ScoundrelIntent.CreateNextRoomIntent) },
+                skipRoomClick = { sendIntent.invoke(ScoundrelIntent.SkipCurrentRoomIntent) },
+                modifier = Modifier
+                    .fillMaxWidth(0.5f)
+            )
         }
 
         Spacer(Modifier.weight(1f))
+
+
+        if (state.canCreateNextRoom()) {
+            Text(
+                text = "Cannot play the next card, create next room to continue",
+                color = Color.White,
+                fontSize = 14.sp
+            )
+            Spacer(Modifier.height(32.dp))
+        }
+
+        state.selectedCard?.let {
+            SelectedCardMoveSets(
+                cardAndPossibleMoveSet = it,
+                moveClicked = { moveSet, move ->
+                    sendIntent.invoke(ScoundrelIntent.MakeMoveIntent(moveSet, move))
+                },
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(Modifier.height(32.dp))
+        }
 
         CurrentRoomSection(
             currentRoomDeck = state.currentRoomDeck,
             selectedCard = state.selectedCard,
             cardClicked = { sendIntent.invoke(ScoundrelIntent.SelectCardIntent(it)) },
-            moveClicked = { set, move -> sendIntent.invoke(ScoundrelIntent.MakeMoveIntent(set, move)) },
             modifier = Modifier.fillMaxWidth()
         )
 
-        Spacer(Modifier.height(48.dp))
+        Spacer(Modifier.height(32.dp))
+    }
+}
+
+@Composable
+private fun WeaponsDeckOption(
+    weaponsDeck: List<CardsAppModel>,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.Center
+    ) {
+        when {
+            weaponsDeck.isEmpty() -> {
+                // nothing present in weapons deck
+                NoCardPlaceholder(
+                    modifier = Modifier.fillMaxHeight(0.33f)
+                )
+            }
+            weaponsDeck.size == 1 -> {
+                // no monster slain yet
+                val weapon = weaponsDeck.first()
+                CardComponent(
+                    card = weapon,
+                    modifier = Modifier.fillMaxHeight(0.33f)
+                )
+            }
+            else -> {
+                // weapon selected and monster slain
+                val weapon = weaponsDeck.first()
+                val lastMonsterSlain = weaponsDeck.last()
+                Box(
+                    contentAlignment = Alignment.Center
+                ) {
+                    CardComponent(
+                        card = weapon,
+                        modifier = Modifier
+                            .fillMaxHeight(0.33f)
+                    )
+
+                    CardComponent(
+                        card = lastMonsterSlain,
+                        modifier = Modifier
+                            .fillMaxHeight(0.33f)
+                            .offset(
+                                x = 28.dp,
+                                y = 28.dp
+                            )
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun DungeonDeckOption(
+    dungeonDeck: List<CardsAppModel>,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = Modifier.fillMaxWidth(0.25f),
+    ) {
+        Text(
+            text = "Dungeon",
+            color = Color.White,
+            fontWeight = FontWeight.SemiBold,
+            fontSize = 14.sp
+        )
+        Spacer(Modifier.height(4.dp))
+        Box(
+            modifier = modifier,
+            contentAlignment = Alignment.BottomEnd
+        ) {
+            NoCardPlaceholder(
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Box(
+                modifier = Modifier
+                    .padding(4.dp)
+                    .background(Color.Black, CircleShape)
+                    .padding(4.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = dungeonDeck.size.toString(),
+                    fontSize = 14.sp,
+                    textAlign = TextAlign.Center,
+                    color = Color.White
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun RoomMoveOption(
+    canCreateRoom: Boolean,
+    canSkipRoom: Boolean,
+    createRoomClick: () -> Unit,
+    skipRoomClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.End
+    ) {
+        GameOptionButton(
+            text = "Next room",
+            enabled = canCreateRoom,
+            onClick = createRoomClick,
+            modifier = Modifier.padding(bottom = 4.dp)
+        )
+
+        GameOptionButton(
+            text = "Skip room",
+            enabled = canSkipRoom,
+            onClick = skipRoomClick,
+            modifier = Modifier.padding(top = 4.dp)
+        )
     }
 }
 
@@ -267,7 +393,6 @@ private fun CurrentRoomSection(
     currentRoomDeck: List<CardsAppModel>,
     selectedCard: CardAndPossibleMoveSet?,
     cardClicked: (CardsAppModel) -> Unit,
-    moveClicked: (CardAndPossibleMoveSet, ScoundrelMoveSet) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Row(
@@ -300,13 +425,88 @@ private fun CurrentRoomSection(
                     modifier = Modifier
                         .padding(horizontal = 4.dp)
                         .weight(1f)
-                        .offset(y = if (isCardSelected) (-12).dp else 0.dp)
                         .scale(if (isCardSelected) 1.25f else 1f)
                         .zIndex(if (isCardSelected) 2f else 0f)
                         .clickable(onClick = { cardClicked.invoke(card) })
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun SelectedCardMoveSets(
+    cardAndPossibleMoveSet: CardAndPossibleMoveSet,
+    moveClicked: (CardAndPossibleMoveSet, ScoundrelMoveSet) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier,
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.Center
+    ) {
+        cardAndPossibleMoveSet.moveSets.forEach {
+            MoveComponent(
+                move = it,
+                onClick = { moveClicked.invoke(cardAndPossibleMoveSet, it) },
+                modifier = Modifier
+                    .padding(4.dp)
+            )
+        }
+    }
+}
+
+@Composable
+private fun MoveComponent(
+    move: ScoundrelMoveSet,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    GameOptionButton(
+        text = move.moveName(),
+        onClick = onClick,
+        enabled = move.canChoose,
+        modifier = modifier
+    )
+}
+
+@Composable
+private fun GameOptionButton(
+    text: String,
+    onClick: () -> Unit,
+    enabled: Boolean = true,
+    modifier: Modifier = Modifier
+) {
+    val shape = RoundedCornerShape(topEnd = 8.dp, bottomStart = 8.dp)
+    Box(
+        modifier = modifier
+            .background(
+                color = ColorUtils.TanBrown,
+                shape = shape
+            )
+            .alpha(if (enabled) 1f else 0.4f)
+            .clickable(enabled = enabled, onClick = onClick)
+            .padding(2.dp)
+            .border(2.dp, Color.Black, shape)
+            .padding(vertical = 8.dp, horizontal = 16.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = text,
+            fontWeight = FontWeight.SemiBold,
+            color = Color.Black,
+            textAlign = TextAlign.Center
+        )
+    }
+}
+
+private fun ScoundrelMoveSet.moveName(): String {
+    return when(this) {
+        is ScoundrelMoveSet.EquipWeapon -> "Equip Weapon"
+        is ScoundrelMoveSet.HealthCard.Discard -> "Discard"
+        is ScoundrelMoveSet.HealthCard.UsePotion -> "Heal"
+        is ScoundrelMoveSet.MonsterCard.FightBareHanded -> "Barehanded"
+        is ScoundrelMoveSet.MonsterCard.FightWithWeapon -> "With weapon"
     }
 }
 
@@ -396,13 +596,16 @@ private fun CardComponent(
             contentAlignment = Alignment.Center
         ) {
             val suitHeight = (cardHeight.value / 4).dp
-            Image(
-                painter = painterResource(card.getSuitImg()),
-                contentDescription = card.suit.name,
-                modifier = Modifier
-                    .height(suitHeight)
-                    .aspectRatio(1f)
-            )
+            if (suitHeight != 0.dp) {
+                Image(
+                    painter = painterResource(card.getSuitImg()),
+                    contentDescription = card.suit.name,
+                    modifier = Modifier
+                        .height(suitHeight)
+                        .aspectRatio(1f)
+                        .animateContentSize()
+                )
+            }
         }
 
         Text(
@@ -412,6 +615,17 @@ private fun CardComponent(
             fontSize = 18.sp,
             modifier = Modifier
                 .align(Alignment.TopEnd)
+                .padding(4.dp)
+                .background(ColorUtils.LightBrown)
+        )
+
+        Text(
+            text = card.getValue(),
+            color = card.getColor(),
+            fontWeight = FontWeight.Bold,
+            fontSize = 18.sp,
+            modifier = Modifier
+                .align(Alignment.BottomStart)
                 .padding(4.dp)
                 .background(ColorUtils.LightBrown)
         )

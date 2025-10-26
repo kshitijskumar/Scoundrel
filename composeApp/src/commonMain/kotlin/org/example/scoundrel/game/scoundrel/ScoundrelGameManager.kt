@@ -144,16 +144,9 @@ class ScoundrelGameManagerImpl(
 
             val updatedDungeon = currentRoomCards.addAllAndGet(currentState.dungeonDeck)
 
-            val updatedRoomAndDungeon = getRoomAndRemainingDungeon(updatedDungeon, ROOM_SIZE)
-
-            if (updatedRoomAndDungeon == null) {
-                // shouldn't happen skip only allowed if there was sufficient cards
-                return
-            }
-
             // reset dungeon again after putting current room cards back in deck
             var updatedState = currentState.copy(
-                dungeonDeck = updatedRoomAndDungeon.second,
+                dungeonDeck = updatedDungeon,
                 currentRoomState = currentState.currentRoomState.copy(
                     roomDeck = listOf(),
                     cardPlayedInRoom = listOf()

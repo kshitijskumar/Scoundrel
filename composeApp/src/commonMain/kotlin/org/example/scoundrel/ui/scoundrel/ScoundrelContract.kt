@@ -54,14 +54,4 @@ sealed class ScoundrelMoveSet {
     data class EquipWeapon(override val canChoose: Boolean) : ScoundrelMoveSet()
 }
 
-fun ScoundrelMoveSet.moveName(): String {
-    return when(this) {
-        is ScoundrelMoveSet.EquipWeapon -> "Equip Weapon"
-        is ScoundrelMoveSet.HealthCard.Discard -> "Discard Potion"
-        is ScoundrelMoveSet.HealthCard.UsePotion -> "Use potion"
-        is ScoundrelMoveSet.MonsterCard.FightBareHanded -> "Fight Barehanded"
-        is ScoundrelMoveSet.MonsterCard.FightWithWeapon -> "Fight with Weapon"
-    }
-}
-
 class ScoundrelEffect

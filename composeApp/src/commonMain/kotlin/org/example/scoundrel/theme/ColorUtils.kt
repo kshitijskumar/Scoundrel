@@ -9,5 +9,6 @@ object ColorUtils {
     val LightBrown = Color(0xFFede0d4)
 
     val MediumRed = Color(0xFFc44536)
+    val TanBrown = Color(0xFFd9cab3)
 
 }

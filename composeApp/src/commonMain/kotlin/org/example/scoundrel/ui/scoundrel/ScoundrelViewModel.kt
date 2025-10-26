@@ -51,6 +51,22 @@ class ScoundrelViewModel(
             return
         }
 
+        if (state.value.canCreateNextRoom()) {
+            // if room creation is needed, card cannot be played
+            return
+        }
+
+        val isCardAlreadySelected = intent.card == state.value.selectedCard?.selectedCard
+
+        if (isCardAlreadySelected) {
+            updateState {
+                it.copy(
+                    selectedCard = null
+                )
+            }
+            return
+        }
+
         val possibleMoveSets = getPossibleMoveSetsForCard(intent.card)
 
         if (possibleMoveSets.isEmpty()) {
@@ -154,7 +170,8 @@ class ScoundrelViewModel(
                         currentRoomDeck = state.currentRoomState.roomDeck,
                         weaponDeck = state.weaponDeck,
                         canSkipCurrentRoom = state.canSkipCurrentRoom,
-                        finishState = state.finishState
+                        finishState = state.finishState,
+                        selectedCard = null
                     )
                 }
             }
