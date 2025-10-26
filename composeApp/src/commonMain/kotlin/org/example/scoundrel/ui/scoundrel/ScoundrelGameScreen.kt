@@ -44,6 +44,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.TileMode
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.text.font.FontWeight
@@ -52,14 +53,24 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.max
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
+import org.example.scoundrel.cards.CardColor
+import org.example.scoundrel.cards.CardFace
+import org.example.scoundrel.cards.CardSuit
 import org.example.scoundrel.cards.CardsAppModel
+import org.example.scoundrel.cards.color
 import org.example.scoundrel.game.scoundrel.ScoundrelFinishState
 import org.example.scoundrel.game.scoundrel.ScoundrelGameManagerImpl
 import org.example.scoundrel.theme.ColorUtils
 import org.example.scoundrel.theme.ShapeUtils.cardShape
+import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
 import scoundrel.composeapp.generated.resources.Res
+import scoundrel.composeapp.generated.resources.ic_card_border
 import scoundrel.composeapp.generated.resources.ic_health_heart
+import scoundrel.composeapp.generated.resources.ic_suit_clubs
+import scoundrel.composeapp.generated.resources.ic_suit_diamond
+import scoundrel.composeapp.generated.resources.ic_suit_hearts
+import scoundrel.composeapp.generated.resources.ic_suit_spades
 import kotlin.collections.indexOf
 import kotlin.math.max
 
@@ -274,7 +285,7 @@ private fun CurrentRoomSection(
             final.also { previousCards = final }
         }
 
-        currentCardsSlots.forEach { card ->
+        currentCardsSlots.forEachIndexed { index, card ->
             if (card == null) {
                 NoCardPlaceholder(
                     modifier = Modifier
@@ -365,12 +376,75 @@ private fun CardComponent(
     card: CardsAppModel,
     modifier: Modifier = Modifier
 ) {
+    var cardHeight by remember { mutableStateOf(0.dp) }
+    val density = LocalDensity.current
+
     EmptyCardSlot(
         modifier = modifier
-            .background(Color.White, cardShape)
-            .border(4.dp, Color.Black, cardShape)
+            .border(1.dp, Color.Black, cardShape)
+            .background(ColorUtils.LightBrown, cardShape)
+            .border(1.dp, ColorUtils.LightBrown, cardShape)
     ) {
-        Text(card.toString())
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .onGloballyPositioned {
+                    cardHeight = with(density) { it.size.height.toDp() }
+                }
+                .padding(4.dp)
+                .border(1.dp, Color.Black, cardShape),
+            contentAlignment = Alignment.Center
+        ) {
+            val suitHeight = (cardHeight.value / 4).dp
+            Image(
+                painter = painterResource(card.getSuitImg()),
+                contentDescription = card.suit.name,
+                modifier = Modifier
+                    .height(suitHeight)
+                    .aspectRatio(1f)
+            )
+        }
+
+        Text(
+            text = card.getValue(),
+            color = card.getColor(),
+            fontWeight = FontWeight.Bold,
+            fontSize = 18.sp,
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(4.dp)
+                .background(ColorUtils.LightBrown)
+        )
+    }
+}
+
+fun CardsAppModel.getValue(): String {
+    return when(this) {
+        is CardsAppModel.Face -> {
+            when(this.face) {
+                CardFace.JACK -> "J"
+                CardFace.QUEEN -> "Q"
+                CardFace.KING -> "K"
+                CardFace.ACE -> "A"
+            }
+        }
+        is CardsAppModel.Value -> this.number.toString()
+    }
+}
+
+fun CardsAppModel.getSuitImg(): DrawableResource {
+    return when(this.suit) {
+        CardSuit.DIAMONDS -> Res.drawable.ic_suit_diamond
+        CardSuit.HEARTS -> Res.drawable.ic_suit_hearts
+        CardSuit.SPADES -> Res.drawable.ic_suit_spades
+        CardSuit.CLUBS -> Res.drawable.ic_suit_clubs
+    }
+}
+
+fun CardsAppModel.getColor(): Color {
+    return when(this.color) {
+        CardColor.RED -> Color.Red
+        CardColor.BLACK -> Color.Black
     }
 }
 
@@ -384,7 +458,7 @@ private fun NoCardPlaceholder(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(ColorUtils.LightBrown)
+                .background(ColorUtils.MediumRed.copy(alpha = 0.75f))
         )
     }
 }
