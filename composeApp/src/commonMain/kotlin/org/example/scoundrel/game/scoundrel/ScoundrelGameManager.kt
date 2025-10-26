@@ -260,7 +260,7 @@ class ScoundrelGameManagerImpl(
             currentRoomDeck.size == 1
         } else {
             val isCurrentRoomFinished = currentRoomDeck.size == 1
-            val areSufficientCardsPresentInDungeon = dungeonDeck.size == (ROOM_SIZE - 1)
+            val areSufficientCardsPresentInDungeon = dungeonDeck.size >= (ROOM_SIZE - 1)
 
             // current room finished but sufficient cards not present in dungeon to continue
             isCurrentRoomFinished && !areSufficientCardsPresentInDungeon
